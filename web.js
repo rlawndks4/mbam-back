@@ -86,9 +86,9 @@ if (is_test) {
 
 } else {
         const options = { // letsencrypt로 받은 인증서 경로를 입력해 줍니다.
-                ca: fs.readFileSync("/etc/letsencrypt/live/mago1004.com/fullchain.pem"),
-                key: fs.readFileSync("/etc/letsencrypt/live/mago1004.com/privkey.pem"),
-                cert: fs.readFileSync("/etc/letsencrypt/live/mago1004.com/cert.pem")
+                ca: fs.readFileSync("/etc/letsencrypt/live/msgbam.com/fullchain.pem"),
+                key: fs.readFileSync("/etc/letsencrypt/live/msgbam.com/privkey.pem"),
+                cert: fs.readFileSync("/etc/letsencrypt/live/msgbam.com/cert.pem")
         };
         server = https.createServer(options, app).listen(HTTPS_PORT, function () {
                 console.log("Server on " + HTTPS_PORT);
@@ -159,9 +159,9 @@ app.get('/api/item', async (req, res) => {
                 let find_column = await dbQueryList(`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=? AND TABLE_SCHEMA=?`, [`${table}_table`, 'mago']);
                 find_column = find_column?.result;
                 find_column = find_column.map((column) => {
-                    return column?.COLUMN_NAME
+                        return column?.COLUMN_NAME
                 })
-                
+
                 if (req.query.views && find_column.includes('views')) {
                         db.query(`UPDATE ${table}_table SET views=views+1 WHERE pk=?`, [pk], (err, result_view) => {
                                 if (err) {
