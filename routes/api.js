@@ -1765,6 +1765,7 @@ const getShop = async (req, res) => {
         }
         let sql_list = [
             { table: 'shop', sql: `SELECT * FROM shop_table WHERE pk=${pk}`, type: 'obj' },
+            { table: 'shop_manager', sql: `SELECT shop_manager_table.* FROM shop_manager_table LEFT JOIN shop_table ON shop_manager_table.shop_pk=shop_table.pk WHERE shop_manager_table.status=1 AND shop_manager_table.shop_pk=${pk} ORDER BY sort DESC `, type: 'list' },
             { table: 'review', sql: `SELECT shop_review_table.*, user_table.nickname FROM shop_review_table LEFT JOIN user_table ON shop_review_table.user_pk=user_table.pk WHERE status=1 AND shop_pk=${pk} ORDER BY pk DESC LIMIT ${(review_page - 1) * page_cut}, ${page_cut}`, type: 'list' },
             { table: 'review_size', sql: `SELECT COUNT(*) AS size FROM shop_review_table WHERE status=1 AND shop_pk=${pk}`, type: 'obj' },
             { table: 'event', sql: `SELECT shop_event_table.*, user_table.nickname FROM shop_event_table LEFT JOIN user_table ON shop_event_table.user_pk=user_table.pk WHERE status=1 AND shop_pk=${pk} ORDER BY pk DESC LIMIT ${(event_page - 1) * page_cut}, ${page_cut}`, type: 'list' },
