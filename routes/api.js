@@ -1082,7 +1082,20 @@ const addItem = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        let add_user_pk_list = ['notice', 'faq', 'event', 'shop', 'freeboard', 'question', 'humor', 'news', 'party']
+        let add_user_pk_list = [
+            'notice',
+            'faq',
+            'event',
+            'blog',
+            'shop',
+            'freeboard',
+            'anonymous',
+            'greeting',
+            'education',
+            'shop_offer',
+            'shop_trade',
+            'shop_review',
+        ]
         if (add_user_pk_list.includes(table)) {
             keys.push('user_pk');
             values.push(decode?.pk);
@@ -1091,7 +1104,7 @@ const addItem = async (req, res) => {
         let sql = `INSERT INTO ${table}_table (${keys.join()}) VALUES (${values_str}) `;
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
-        let use_sort = ['sub_city', 'city']
+        let use_sort = ['sub_city', 'city', '']
         if (use_sort.includes(table)) {
             let result_ = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
         }
@@ -1262,7 +1275,7 @@ const updateItem = async (req, res) => {
 const updatePlusUtil = async (schema, body) => {
     return;
     if (schema == 'shop') {
-        let url = 'https://mago1004.com';
+        let url = 'https://msgbam.com';
         let themes = await dbQueryList("SELECT * FROM shop_theme_table WHERE status=1");
         themes = themes?.result;
         let shops = await dbQueryList("SELECT city_1, city_2, pk FROM shop_table WHERE status=1");
@@ -1270,16 +1283,16 @@ const updatePlusUtil = async (schema, body) => {
         let data = `<?xml version="1.0" encoding="UTF-8"?>\n`;
         data += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n`
         data += `<url><loc>${url}</loc><lastmod>${returnMoment().substring(0, 10)}</lastmod>\n</url>\n`
-        let default_list = ['https://mago1004.com/community-list/freeboard/',
-            'https://mago1004.com/community-list/question/',
-            'https://mago1004.com/community-list/humor/',
-            'https://mago1004.com/community-list/news/',
-            'https://mago1004.com/community-list/party/',
-            'https://mago1004.com/community-list/shop_review/',
-            'https://mago1004.com/community-list/shop_event/',
-            'https://mago1004.com/community-list/notice/',
-            'https://mago1004.com/community-list/faq/',
-            'https://mago1004.com/community-list/request/',];
+        let default_list = ['https://msgbam.com/community-list/freeboard/',
+            'https://msgbam.com/community-list/question/',
+            'https://msgbam.com/community-list/humor/',
+            'https://msgbam.com/community-list/news/',
+            'https://msgbam.com/community-list/party/',
+            'https://msgbam.com/community-list/shop_review/',
+            'https://msgbam.com/community-list/shop_event/',
+            'https://msgbam.com/community-list/notice/',
+            'https://msgbam.com/community-list/faq/',
+            'https://msgbam.com/community-list/request/',];
         for (var i = 0; i < default_list.length; i++) {
             let string = `<url>\n<loc>${default_list[i]}`;
             string += `</loc>\n`;

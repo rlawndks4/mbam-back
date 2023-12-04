@@ -53,17 +53,19 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode_) => 
     let order = order_;
     let where_str = where_str_;
     let community_list = [
-        'faq',
         'notice',
+        'faq',
+        'event',
+        'blog',
         'freeboard',
-        'question',
-        'humor',
-        'news',
-        'party',
+        'anonymous',
+        'greeting',
+        'education',
     ]
     let shop_community_list = [
         'shop_review',
-        'shop_event',
+        'shop_offer',
+        'shop_trade',
     ]
     if(schema=='request'){
         sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.id AS id FROM request_table`;
