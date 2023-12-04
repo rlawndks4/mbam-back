@@ -1,5 +1,6 @@
 const fs = require('fs')
 const express = require('express')
+require('dotenv');
 const app = express()
 const mysql = require('mysql')
 const cors = require('cors')
@@ -47,7 +48,7 @@ app.get('/', (req, res) => {
         console.log("back-end initialized")
         res.send('back-end initialized')
 });
-const is_test = true;
+const is_test = (process.env.NODE_ENV == 'development' ? true : false);
 app.connectionsN = 0;
 const HTTP_PORT = 8001;
 const HTTPS_PORT = 8443;
