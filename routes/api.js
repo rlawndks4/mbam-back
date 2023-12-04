@@ -1105,7 +1105,7 @@ const addItem = async (req, res) => {
         let sql = `INSERT INTO ${table}_table (${keys.join()}) VALUES (${values_str}) `;
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
-        let use_sort = ['sub_city', 'city', '']
+        let use_sort = ['sub_city', 'city', 'shop_theme', 'shop_option', 'shop_country']
         if (use_sort.includes(table)) {
             let result_ = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
         }
