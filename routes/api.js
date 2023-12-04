@@ -1311,8 +1311,6 @@ const updatePlusUtil = async (schema, body) => {
         }
         for (var i = 0; i < shops.length; i++) {
             let string = `<url>\n<loc>${url}/shop`;
-            string += `/${shops[i]?.city_1 ? shops[i]?.city_1 : "_"}`;
-            string += `/${shops[i]?.city_2 ? shops[i]?.city_2 : "_"}`;
             string += `/${shops[i]?.pk}`;
             string += `</loc>\n`;
             string += `<lastmod>${returnMoment().substring(0, 10)}</lastmod>\n`;
