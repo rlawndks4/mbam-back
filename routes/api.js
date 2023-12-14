@@ -55,15 +55,15 @@ const onSignUp = async (req, res) => {
     try {
         //logRequest(req)
         const id = req.body.id ?? "";
-        const pw = req.body.pw ?? "";
+        let pw = req.body.pw ?? "";
         const name = req.body.name ?? "";
         const nickname = req.body.nickname ?? "";
         const phone = req.body.phone ?? "";
         const user_level = req.body.user_level ?? 0;
-        const type_num = req.body.type_num ?? 0;
+        const type_num = 0;
         //중복 체크 
         let sql = "SELECT * FROM user_table WHERE id=? OR nickname=? ";
-
+        console.log(pw)
         db.query(sql, [id, nickname, -10], async (err, result) => {
             if (result.length > 0) {
                 let msg = "";
@@ -90,14 +90,12 @@ const onSignUp = async (req, res) => {
                         console.log(err)
                         return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
                     } else {
-                        console.log(result.map(item => item.phone))
                         if (result.map(item => item.phone).includes(phone)) {
                             return response(req, res, -100, "가입할 수 없는 전화번호 입니다.", [])
                         } else {
                             await crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
                                 // bcrypt.hash(pw, salt, async (err, hash) => {
                                 let hash = decoded.toString('base64')
-
                                 if (err) {
                                     console.log(err)
                                     return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
@@ -139,6 +137,7 @@ const onLoginById = async (req, res) => {
                     await crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
                         // bcrypt.hash(pw, salt, async (err, hash) => {
                         let hash = decoded.toString('base64');
+                        console.log(pw)
                         console.log(hash)
                         console.log(result1[0].pw)
                         if (hash == result1[0].pw) {
@@ -451,7 +450,8 @@ const sendSms = (req, res) => {
 const findIdByPhone = (req, res) => {
     try {
         const phone = req.body.phone;
-        db.query("SELECT pk, id FROM user_table WHERE phone=?", [phone], (err, result) => {
+        const name = req.body.name;
+        db.query("SELECT pk, id FROM user_table WHERE phone=? AND name=?", [phone, name], (err, result) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "서버 에러 발생", [])
@@ -468,7 +468,8 @@ const findAuthByIdAndPhone = (req, res) => {
     try {
         const id = req.body.id;
         const phone = req.body.phone;
-        db.query("SELECT * FROM user_table WHERE id=? AND phone=?", [id, phone], (err, result) => {
+        const name = req.body.name;
+        db.query("SELECT * FROM user_table WHERE id=? AND phone=? AND name=?", [id, phone, name], (err, result) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "서버 에러 발생", [])
@@ -764,6 +765,12 @@ const getHomeContent = async (req, res) => {
         let sql_list = [
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'city', sql: 'SELECT * FROM city_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'theme', sql: 'SELECT * FROM shop_theme_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'notice', sql: 'SELECT * FROM notice_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
+            { table: 'blog', sql: 'SELECT * FROM blog_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
+            { table: 'shop_review', sql: 'SELECT * FROM shop_review_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
+            { table: 'freeboard', sql: 'SELECT * FROM freeboard_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
+            { table: 'greeting', sql: 'SELECT * FROM greeting_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
             { table: 'shop', sql: shop_sql, type: 'list' },
         ];
 
@@ -952,17 +959,21 @@ const getVideo = (req, res) => {
 const getComments = (req, res) => {
     try {
 
-        const { pk, category } = req.query;
+        const { shop_pk, post_table, post_pk } = req.query;
         let zColumn = [];
         let columns = ""
-        if (pk) {
-            zColumn.push(pk)
-            columns += " AND comment_table.item_pk=? ";
+
+        if (shop_pk) {
+            zColumn.push(shop_pk)
+            columns += " AND comment_table.shop_pk=? ";
         }
-        if (category) {
-            zColumn.push(category)
-            columns += " AND comment_table.category_pk=? ";
+        if (post_table && post_pk) {
+            zColumn.push(post_pk)
+            zColumn.push(`${post_table}`)
+            columns += " AND comment_table.post_pk=? AND post_table=? ";
         }
+        console.log(zColumn)
+        console.log(columns)
         db.query(`SELECT comment_table.*, user_table.nickname FROM comment_table LEFT JOIN user_table ON comment_table.user_pk = user_table.pk WHERE 1=1 ${columns} ORDER BY pk DESC`, zColumn, (err, result) => {
             if (err) {
                 console.log(err)
@@ -987,10 +998,10 @@ const addComment = (req, res) => {
             auth = decode;
 
         }
-        let { pk, parentPk, title, note, category } = req.body;
+        let { parentPk, note, shop_pk = 0, post_pk = 0, post_table = "" } = req.body;
         let userPk = auth.pk;
         let userNick = auth.nickname;
-        db.query("INSERT INTO comment_table (user_pk, user_nickname, item_pk, item_title, note, category_pk, parent_pk) VALUES (?, ?, ?, ?, ?, ?, ?)", [userPk, userNick, pk, title, note, category, parentPk], (err, result) => {
+        db.query("INSERT INTO comment_table (user_pk, user_nickname, note, shop_pk, parent_pk, post_pk, post_table) VALUES (?, ?, ?, ?, ?, ?, ?)", [userPk, userNick, note, shop_pk, parentPk, post_pk, post_table], (err, result) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "fail", [])
@@ -1708,7 +1719,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
 }
 const getShops = async (req, res) => {
     try {
-        let { theme = 0, is_around, city = 0, sub_city = 0 } = req.body;
+        let { theme = 0, is_around, city = 0, sub_city = 0, keyword } = req.body;
         let column_list = [
             'shop_table.*',
             'city_table.name AS city_name',
@@ -1731,7 +1742,10 @@ const getShops = async (req, res) => {
         if (sub_city && sub_city != 0) {
             sql += ` AND shop_table.sub_city_pk=${sub_city} `;
         }
-
+        if (keyword) {
+            let keyword_list = ['shop_table.name', 'shop_table.sub_name', 'city_table.name'];
+            sql += ` AND ${keyword_list.join(` LIKE '%${keyword}%' OR `)} LIKE '%${keyword}%' `
+        }
         let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
         country_list = country_list?.result;
         let country_obj = listToObjKey(country_list, 'pk');
@@ -1773,6 +1787,7 @@ const getShop = async (req, res) => {
         if (!pk && name) {
             let shop = await dbQueryList(`SELECT * FROM shop_table WHERE name='${name}'`);
             shop = shop?.result[0];
+            console.log(shop)
             if (!shop) {
                 return response(req, res, -404, "잘못된 접근입니다.", [])
             } else {
