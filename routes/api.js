@@ -820,6 +820,7 @@ const getHeaderContent = async (req, res) => {
             { table: 'top_banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'popup', sql: 'SELECT * FROM popup_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
             { table: 'theme', sql: 'SELECT * FROM shop_theme_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'city', sql: 'SELECT * FROM city_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
             // { table: 'master', sql: 'SELECT pk, nickname, name FROM user_table WHERE user_level=30 AND status=1  ORDER BY sort DESC', type: 'list' },
         ];
         for (var i = 0; i < sql_list.length; i++) {
@@ -993,10 +994,10 @@ const addComment = (req, res) => {
             auth = decode;
 
         }
-        let { parentPk, note, shop_pk = 0, post_pk = 0, post_table = "" } = req.body;
+        let { parentPk, note, shop_pk = 0, post_pk = 0, post_table = "", post_title = "" } = req.body;
         let userPk = auth.pk;
         let userNick = auth.nickname;
-        db.query("INSERT INTO comment_table (user_pk, user_nickname, note, shop_pk, parent_pk, post_pk, post_table) VALUES (?, ?, ?, ?, ?, ?, ?)", [userPk, userNick, note, shop_pk, parentPk, post_pk, post_table], (err, result) => {
+        db.query("INSERT INTO comment_table (user_pk, user_nickname, note, shop_pk, parent_pk, post_pk, post_table, post_title) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [userPk, userNick, note, shop_pk, parentPk, post_pk, post_table, post_title], (err, result) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "fail", [])
@@ -1101,6 +1102,7 @@ const addItem = async (req, res) => {
             'education',
             'shop_offer',
             'shop_trade',
+            'shop_event',
             'shop_review',
         ]
         if (add_user_pk_list.includes(table)) {
@@ -1839,7 +1841,7 @@ const getItems = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
 
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, city_pk, shop_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, city_pk, shop_pk, comment_type } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
         let keyword_columns = getKewordListBySchema(table);
@@ -1880,6 +1882,13 @@ const getItems = async (req, res) => {
         }
         if (start_date && end_date) {
             whereStr += ` AND (${table}_table.trade_date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
+        }
+        if (comment_type) {
+            if (comment_type == 'shop') {
+                whereStr += ` AND ${table}_table.shop_pk > 0 `;
+            } else if (comment_type == 'post') {
+                whereStr += ` AND ${table}_table.post_pk > 0 `;
+            }
         }
         if (keyword) {
             if (keyword_columns?.length > 0) {

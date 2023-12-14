@@ -66,6 +66,7 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode_) => 
         'shop_review',
         'shop_offer',
         'shop_trade',
+        'shop_event',
     ]
     if(schema=='request'){
         sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.id AS id FROM request_table`;
@@ -81,9 +82,17 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode_) => 
         page_sql += ` LEFT JOIN user_table ON shop_table.user_pk=user_table.pk `;
         order = 'pk'
     }else if(schema=='comment'){
-        sql = ` SELECT comment_table.*, user_table.nickname AS nickname, user_table.id AS id FROM comment_table`;
+        let columns = [
+            `comment_table.*`,
+            `user_table.nickname AS nickname`,
+            `user_table.id AS id`,
+            `shop_table.name AS shop_name`,
+        ]
+        sql = ` SELECT ${columns.join()} FROM comment_table`;
         page_sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
+        page_sql += ` LEFT JOIN shop_table ON comment_table.shop_pk=shop_table.pk `;
         sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
+        sql += ` LEFT JOIN shop_table ON comment_table.shop_pk=shop_table.pk `;
         order = 'pk'
     }else if(shop_community_list.includes(schema)){
         sql = ` SELECT ${schema}_table.*, user_table.nickname AS nickname, user_table.id AS id, shop_table.name AS shop_name FROM ${schema}_table`;
@@ -97,7 +106,7 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode_) => 
         page_sql += ` LEFT JOIN user_table ON ${schema}_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON ${schema}_table.user_pk=user_table.pk `;
         order = 'pk'
-    }
+    } 
     return {
         page_sql:page_sql,
         sql:sql,
