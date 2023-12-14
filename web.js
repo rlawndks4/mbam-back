@@ -176,7 +176,6 @@ app.get('/api/item', async (req, res) => {
                                 console.log(err)
                                 return response(req, res, -200, "서버 에러 발생s", []);
                         } else {
-                                console.log(req.body)
                                 return response(req, res, 100, "success", result[0]);
                         }
                 })

@@ -137,9 +137,6 @@ const onLoginById = async (req, res) => {
                     await crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
                         // bcrypt.hash(pw, salt, async (err, hash) => {
                         let hash = decoded.toString('base64');
-                        console.log(pw)
-                        console.log(hash)
-                        console.log(result1[0].pw)
                         if (hash == result1[0].pw) {
                             try {
                                 const token = jwt.sign({
@@ -972,8 +969,6 @@ const getComments = (req, res) => {
             zColumn.push(`${post_table}`)
             columns += " AND comment_table.post_pk=? AND post_table=? ";
         }
-        console.log(zColumn)
-        console.log(columns)
         db.query(`SELECT comment_table.*, user_table.nickname FROM comment_table LEFT JOIN user_table ON comment_table.user_pk = user_table.pk WHERE 1=1 ${columns} ORDER BY pk DESC`, zColumn, (err, result) => {
             if (err) {
                 console.log(err)
@@ -1726,6 +1721,8 @@ const getShops = async (req, res) => {
             'sub_city_table.name AS sub_city_name',
             'sub_city_table.name AS sub_city_name',
             'shop_theme_table.name AS theme_name',
+            `(SELECT COUNT(*) FROM comment_table WHERE shop_pk=shop_table.pk) AS comment_count`,
+            `(SELECT COUNT(*) FROM shop_review_table WHERE shop_pk=shop_table.pk) AS review_count`,
         ]
         let sql = `SELECT ${column_list.join()} FROM shop_table `;
         sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
@@ -1787,7 +1784,6 @@ const getShop = async (req, res) => {
         if (!pk && name) {
             let shop = await dbQueryList(`SELECT * FROM shop_table WHERE name='${name}'`);
             shop = shop?.result[0];
-            console.log(shop)
             if (!shop) {
                 return response(req, res, -404, "잘못된 접근입니다.", [])
             } else {
