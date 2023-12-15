@@ -1910,6 +1910,7 @@ const getItems = async (req, res) => {
         pageSql = pageSql + whereStr;
 
         sql = sql + whereStr + ` ORDER BY ${order ? order : 'sort'} DESC `;
+        console.log(sql)
         if (limit && !page) {
             sql += ` LIMIT ${limit} `;
         }
