@@ -2278,7 +2278,7 @@ const getAddressByLocation = async (req, res) => {
         const { name, region, land } = coord?.data?.results[0];
         const { area1, area2, area3, area4 } = region;
         const { addition0, addition1, addition2, addition3, addition4 } = land;
-        const address = `${area1.name} ${area2.name} ${area3.name} ${area4.name} `;
+        const address = `${area2.name} ${area3.name} ${area4.name} `;
         return response(req, res, 100, "success", address);
 
     } catch (e) {
