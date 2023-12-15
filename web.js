@@ -99,7 +99,6 @@ if (is_test) {
 server.on('connection', function (socket) {
         // Increase connections count on newly estabilished connection
         app.connectionsN++;
-
         socket.on('close', function () {
                 // Decrease connections count on closing the connection
                 app.connectionsN--;

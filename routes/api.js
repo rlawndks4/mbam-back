@@ -747,18 +747,25 @@ const updateUser = async (req, res) => {
 const getHomeContent = async (req, res) => {
     try {
         let result_list = [];
+
         let shop_column_list = [
             'shop_table.*',
             'city_table.name AS city_name',
             'sub_city_table.name AS sub_city_name',
             'sub_city_table.name AS sub_city_name',
             'shop_theme_table.name AS theme_name',
+            `(SELECT COUNT(*) FROM comment_table WHERE shop_pk=shop_table.pk) AS comment_count`,
+            `(SELECT COUNT(*) FROM shop_review_table WHERE shop_pk=shop_table.pk) AS review_count`,
         ]
         let shop_sql = `SELECT ${shop_column_list.join()} FROM shop_table `;
         shop_sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
         shop_sql += ` LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk `;
         shop_sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
-        shop_sql += ` WHERE shop_table.status=1 ORDER BY RAND() LIMIT 15 `;
+        shop_sql += ` WHERE shop_table.status=1 `;
+        let premium_shop_sql = shop_sql + ` AND is_premium=1 `
+        shop_sql += ` AND is_premium=0 `
+        premium_shop_sql += ` ORDER BY sort DESC `;
+        shop_sql += ` ORDER BY sort DESC `;
         let sql_list = [
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'city', sql: 'SELECT * FROM city_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
@@ -768,6 +775,7 @@ const getHomeContent = async (req, res) => {
             { table: 'shop_review', sql: 'SELECT * FROM shop_review_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
             { table: 'freeboard', sql: 'SELECT * FROM freeboard_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
             { table: 'greeting', sql: 'SELECT * FROM greeting_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
+            { table: 'premium_shop', sql: premium_shop_sql, type: 'list' },
             { table: 'shop', sql: shop_sql, type: 'list' },
         ];
 
