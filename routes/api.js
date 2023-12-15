@@ -1760,7 +1760,7 @@ const getShops = async (req, res) => {
         option_list = option_list?.result;
         let option_obj = listToObjKey(option_list, 'pk');
 
-        sql += ` ORDER BY RAND() `;
+        sql += ` ORDER BY sort `;
         let shops = await dbQueryList(sql);
         shops = shops?.result;
         for (var i = 0; i < shops.length; i++) {
