@@ -63,7 +63,6 @@ const onSignUp = async (req, res) => {
         const type_num = 0;
         //중복 체크 
         let sql = "SELECT * FROM user_table WHERE id=? OR nickname=? ";
-        console.log(pw)
         db.query(sql, [id, nickname, -10], async (err, result) => {
             if (result.length > 0) {
                 let msg = "";
@@ -1733,6 +1732,7 @@ const getShops = async (req, res) => {
             'shop_theme_table.name AS theme_name',
             `(SELECT COUNT(*) FROM comment_table WHERE shop_pk=shop_table.pk) AS comment_count`,
             `(SELECT COUNT(*) FROM shop_review_table WHERE shop_pk=shop_table.pk) AS review_count`,
+            `(SELECT COUNT(*) FROM shop_manager_table WHERE shop_pk=shop_table.pk) AS manager_count`,
         ]
         let sql = `SELECT ${column_list.join()} FROM shop_table `;
         sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
@@ -1765,6 +1765,7 @@ const getShops = async (req, res) => {
         shops = shops?.result;
         for (var i = 0; i < shops.length; i++) {
             shops[i]['country_list'] = JSON.parse(shops[i]['country_list']);
+            shops[i]['price_list'] = JSON.parse(shops[i]['price_list']);
             for (var j = 0; j < shops[i]['country_list'].length; j++) {
                 if (country_obj[shops[i]['country_list'][j]]) {
                     shops[i]['country_list'][j] = country_obj[shops[i]['country_list'][j]];
@@ -1918,7 +1919,6 @@ const getItems = async (req, res) => {
         pageSql = pageSql + whereStr;
 
         sql = sql + whereStr + ` ORDER BY ${order ? order : 'sort'} DESC `;
-        console.log(sql)
         if (limit && !page) {
             sql += ` LIMIT ${limit} `;
         }
