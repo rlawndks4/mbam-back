@@ -21,8 +21,8 @@ const scheduleIndex = () => {
                 let time_table = JSON.parse(shops[i]?.jump_time_table ?? '[]');
                 if (time_table.map(itm => { return itm?.time }).includes(return_monent.substring(11, 16))) {
                     let result = await insertQuery(`INSERT INTO jump_table (shop_pk, user_pk) VALUES (?, ?)`, [
-                        item?.pk,
-                        item?.user_pk,
+                        shops[i]?.pk,
+                        shops[i]?.user_pk,
                     ])
                 }
             }
