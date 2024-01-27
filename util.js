@@ -57,7 +57,6 @@ let checkLevel = (token, level) => {
         const decoded = jwt.verify(token, jwtSecret, (err, decoded) => {
             //console.log(decoded)
             if (err) {
-                console.log("token이 변조되었습니다." + err);
                 return false
             }
             else return decoded;
@@ -214,7 +213,6 @@ const logRequest = (req) => {
             if (err)
                 console.log(err)
             else {
-                console.log(result)
             }
         }
     )

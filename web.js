@@ -29,11 +29,11 @@ app.use(cookieParser());
 // app.use(passport.initialize());
 // app.use(passport.session());
 // passportConfig(passport);
-const schedule = require('node-schedule');
 
 const path = require('path');
 const { insertQuery } = require('./query-util')
-const { getItem } = require('./routes/api')
+const { getItem } = require('./routes/api');
+const { scheduleIndex } = require('./schedules');
 app.set('/routes', __dirname + '/routes');
 app.set('view engine', 'ejs');
 app.set('views', './views');
@@ -84,6 +84,7 @@ if (is_test) {
         server = http.createServer(app).listen(HTTP_PORT, function () {
                 console.log("Server on " + HTTP_PORT)
         });
+        scheduleIndex();
 
 } else {
         const options = { // letsencrypt로 받은 인증서 경로를 입력해 줍니다.
@@ -94,8 +95,10 @@ if (is_test) {
         server = https.createServer(options, app).listen(HTTPS_PORT, function () {
                 console.log("Server on " + HTTPS_PORT);
         });
+        scheduleIndex();
 
 }
+
 server.on('connection', function (socket) {
         // Increase connections count on newly estabilished connection
         app.connectionsN++;

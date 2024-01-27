@@ -38,6 +38,7 @@ const { format, formatDistance, formatRelative, subDays } = require('date-fns')
 const geolocation = require('geolocation')
 const { sqlJoinFormat, listFormatBySchema, myItemSqlJoinFormat } = require('../format/formats')
 const { param } = require('jquery')
+const _ = require('lodash')
 const kakaoOpt = {
     clientId: '4a8d167fa07331905094e19aafb2dc47',
     redirectUri: 'http://172.30.1.19:8001/api/kakao/callback',
@@ -745,25 +746,23 @@ const updateUser = async (req, res) => {
 
 const getHomeContent = async (req, res) => {
     try {
+
+        let return_monent = returnMoment();
         let result_list = [];
 
         let shop_column_list = [
             'shop_table.*',
             'city_table.name AS city_name',
             'sub_city_table.name AS sub_city_name',
-            'sub_city_table.name AS sub_city_name',
             'shop_theme_table.name AS theme_name',
             `(SELECT COUNT(*) FROM comment_table WHERE shop_pk=shop_table.pk) AS comment_count`,
             `(SELECT COUNT(*) FROM shop_review_table WHERE shop_pk=shop_table.pk) AS review_count`,
         ]
         let shop_sql = `SELECT ${shop_column_list.join()} FROM shop_table `;
-        shop_sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
-        shop_sql += ` LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk `;
+        let city_left_join_str = ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk  LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk  `
+        shop_sql += city_left_join_str;
         shop_sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
         shop_sql += ` WHERE shop_table.status=1 `;
-        let premium_shop_sql = shop_sql + ` AND is_premium=1 `
-        shop_sql += ` AND is_premium=0 `
-        premium_shop_sql += ` ORDER BY sort DESC `;
         shop_sql += ` ORDER BY sort DESC `;
         let sql_list = [
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
@@ -774,8 +773,10 @@ const getHomeContent = async (req, res) => {
             { table: 'shop_review', sql: 'SELECT * FROM shop_review_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
             { table: 'freeboard', sql: 'SELECT * FROM freeboard_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
             { table: 'greeting', sql: 'SELECT * FROM greeting_table WHERE status=1 ORDER BY sort DESC LIMIT 0, 5', type: 'list' },
-            { table: 'premium_shop', sql: premium_shop_sql, type: 'list' },
             { table: 'shop', sql: shop_sql, type: 'list' },
+            { table: 'jump', sql: `SELECT * FROM jump_table WHERE date>='${return_monent.substring(0, 10)} 00:00:00' AND date<='${return_monent.substring(0, 10)} 23:59:59' ORDER BY pk DESC `, type: 'list' },
+            { table: 'real_time_shop', sql: `SELECT shop_table.pk, shop_table.name, real_time_rank, hot_place_rank, city_table.name AS city_name, sub_city_table.name AS sub_city_name FROM shop_table ${city_left_join_str} WHERE shop_table.status=1 AND real_time_rank > 0`, type: 'list' },
+            { table: 'hop_place_shop', sql: `SELECT shop_table.pk, shop_table.name, real_time_rank, hot_place_rank, city_table.name AS city_name, sub_city_table.name AS sub_city_name FROM shop_table ${city_left_join_str} WHERE shop_table.status=1 AND hot_place_rank > 0`, type: 'list' },
         ];
 
         for (var i = 0; i < result_list.length; i++) {
@@ -813,6 +814,56 @@ const getHomeContent = async (req, res) => {
                 }
             }
         }
+        if (result_obj['shop'].length > 0) {
+            let managers = await dbQueryList(`SELECT * FROM shop_manager_table WHERE shop_pk IN (${result_obj['shop'].map(itm => { return itm?.pk }).join()}) AND status=1`);
+            managers = managers?.result;
+            for (var i = 0; i < result_obj['shop'].length; i++) {
+                result_obj['shop'][i].managers = managers.filter(el => el?.shop_pk == result_obj['shop'][i]?.pk);
+            }
+        }
+
+        for (var i = 0; i < result_obj['shop'].length; i++) {
+
+        }
+        let real_time_shop_rand = await dbQueryList(`SELECT shop_table.pk, shop_table.name, real_time_rank, hot_place_rank, city_table.name AS city_name, sub_city_table.name AS sub_city_name FROM shop_table ${city_left_join_str} WHERE shop_table.status=1 ${result_obj['real_time_shop'].length > 0 ? `AND real_time_rank NOT IN (${result_obj['real_time_shop'].map(itm => { return itm?.pk }).join()})` : ''} ORDER BY RAND() LIMIT ${10 - result_obj['real_time_shop'].length}`);
+        real_time_shop_rand = real_time_shop_rand?.result;
+        let hop_place_shop_rand = await dbQueryList(`SELECT shop_table.pk, shop_table.name, real_time_rank, hot_place_rank, city_table.name AS city_name, sub_city_table.name AS sub_city_name FROM shop_table ${city_left_join_str} WHERE shop_table.status=1 ${result_obj['hop_place_shop'].length > 0 ? `AND hot_place_rank NOT IN (${result_obj['hop_place_shop'].map(itm => { return itm?.pk }).join()})` : ''} ORDER BY RAND() LIMIT ${20 - result_obj['hop_place_shop'].length}`);
+        hop_place_shop_rand = hop_place_shop_rand?.result;
+
+        let real_time_shop_list = [];
+        let real_time_shop_rand_idx = 0;
+        for (var i = 1; i <= 10; i++) {
+            let find_idx = _.findIndex(result_obj['real_time_shop'], { real_time_rank: parseInt(i) });
+            if (find_idx >= 0) {
+                real_time_shop_list.push(result_obj['real_time_shop'][find_idx]);
+            } else {
+                if (real_time_shop_rand[real_time_shop_rand_idx]) {
+                    real_time_shop_list.push(real_time_shop_rand[real_time_shop_rand_idx]);
+                    real_time_shop_rand_idx++;
+                } else {
+                    break;
+                }
+            }
+        }
+        result_obj['real_time_shop'] = real_time_shop_list;
+
+        let hop_place_shop_list = [];
+        let hop_place_shop_rand_idx = 0;
+        for (var i = 1; i <= 20; i++) {
+            let find_idx = _.findIndex(result_obj['hop_place_shop'], { hot_place_rank: parseInt(i) });
+            if (find_idx >= 0) {
+                hop_place_shop_list.push(result_obj['hop_place_shop'][find_idx]);
+            } else {
+                if (hop_place_shop_rand[hop_place_shop_rand_idx]) {
+                    hop_place_shop_list.push(hop_place_shop_rand[hop_place_shop_rand_idx]);
+                    hop_place_shop_rand_idx++;
+                } else {
+                    break;
+                }
+            }
+        }
+        result_obj['hop_place_shop'] = hop_place_shop_list;
+
         return response(req, res, 100, "success", result_obj)
 
     } catch (err) {
@@ -822,12 +873,19 @@ const getHomeContent = async (req, res) => {
 }
 const getHeaderContent = async (req, res) => {
     try {
+
+        const decode = checkLevel(req.cookies.token, 0)
         let result_list = [];
+        let shop_columns = [
+            `shop_table.*`,
+            `(SELECT COUNT(*) FROM jump_table WHERE shop_pk=shop_table.pk AND date>='${returnMoment().substring(0, 10)} 00:00:00' AND shop_pk=shop_table.pk AND date<='${returnMoment().substring(0, 10)} 23:59:59') AS use_jump_count`
+        ]
         let sql_list = [
             { table: 'top_banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'popup', sql: 'SELECT * FROM popup_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
             { table: 'theme', sql: 'SELECT * FROM shop_theme_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
             { table: 'city', sql: 'SELECT * FROM city_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'shop', sql: `SELECT ${shop_columns.join()} FROM shop_table WHERE user_pk=${decode?.pk ?? 0} ORDER BY pk DESC`, type: 'list' },
             // { table: 'master', sql: 'SELECT pk, nickname, name FROM user_table WHERE user_level=30 AND status=1  ORDER BY sort DESC', type: 'list' },
         ];
         for (var i = 0; i < sql_list.length; i++) {
@@ -846,6 +904,9 @@ const getHeaderContent = async (req, res) => {
         let result = (await when(result_list));
         for (var i = 0; i < (await result).length; i++) {
             result_obj[(await result[i])?.table] = (await result[i])?.data;
+        }
+        for (var i = 0; i < result_obj?.shop.length; i++) {
+            delete result_obj.shop[i].note;
         }
         return response(req, res, 100, "success", result_obj)
 
@@ -1293,6 +1354,7 @@ const updateItem = async (req, res) => {
     }
 }
 const updatePlusUtil = async (schema, body) => {
+
     return;
     if (schema == 'shop') {
         let url = 'https://msgbam.com';
@@ -1764,6 +1826,7 @@ const getShops = async (req, res) => {
         let shops = await dbQueryList(sql);
         shops = shops?.result;
         for (var i = 0; i < shops.length; i++) {
+            delete shops[i].note;
             shops[i]['country_list'] = JSON.parse(shops[i]['country_list']);
             shops[i]['price_list'] = JSON.parse(shops[i]['price_list']);
             for (var j = 0; j < shops[i]['country_list'].length; j++) {
@@ -1776,6 +1839,13 @@ const getShops = async (req, res) => {
                 if (option_obj[shops[i]['option_list'][j]]) {
                     shops[i]['option_list'][j] = option_obj[shops[i]['option_list'][j]];
                 }
+            }
+        }
+        if (shops.length > 0) {
+            let managers = await dbQueryList(`SELECT * FROM shop_manager_table WHERE shop_pk IN (${shops.map(itm => { return itm?.pk }).join()}) AND status=1`);
+            managers = managers?.result;
+            for (var i = 0; i < shops.length; i++) {
+                shops[i].managers = managers.filter(el => el?.shop_pk == shops[i]?.pk);
             }
         }
         return response(req, res, 100, "success", shops);
@@ -1855,7 +1925,6 @@ const getItems = async (req, res) => {
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
         let keyword_columns = getKewordListBySchema(table);
         let whereStr = " WHERE 1=1 ";
-        let setting_result = await updatePlusUtil(table, req.body);
         if (level) {
             whereStr += ` AND ${table}_table.user_level=${level} `;
         }
@@ -2170,6 +2239,68 @@ const onTheTopItem = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const onJump = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        const { pk } = req.body;
+        let shop_columns = [
+            `pk`,
+            `user_pk`,
+            `daily_jump_count`,
+            `(SELECT COUNT(*) FROM jump_table WHERE shop_pk=shop_table.pk AND date>='${returnMoment().substring(0, 10)} 00:00:00' AND shop_pk=shop_table.pk AND date<='${returnMoment().substring(0, 10)} 23:59:59') AS use_jump_count`,
+        ]
+        let shop = await dbQueryList(`SELECT ${shop_columns.join()} FROM shop_table WHERE pk=${pk} `);
+        shop = shop?.result[0];
+
+        if (!(decode?.user_level >= 40) && shop?.user_pk != decode?.pk) {
+            return lowLevelResponse(req, res);
+        }
+
+        if (shop?.use_jump_count >= shop?.daily_jump_count) {
+            return response(req, res, -100, "점프를 모두 소진하였습니다.", [])
+        }
+
+        let result = await insertQuery(`INSERT INTO jump_table (shop_pk, user_pk) VALUES (?, ?)`, [
+            pk,
+            decode?.pk
+        ])
+        return response(req, res, 100, "success", [])
+
+
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const updateJumpTimeTable = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        const { pk, time_table = '[]' } = req.body;
+        let shop_columns = [
+            `pk`,
+            `user_pk`,
+            `daily_jump_count`,
+            `(SELECT COUNT(*) FROM jump_table WHERE shop_pk=shop_table.pk AND date>='${returnMoment().substring(0, 10)} 00:00:00' AND shop_pk=shop_table.pk AND date<='${returnMoment().substring(0, 10)} 23:59:59') AS use_jump_count`,
+        ]
+        let shop = await dbQueryList(`SELECT ${shop_columns.join()} FROM shop_table WHERE pk=${pk} `);
+        shop = shop?.result[0];
+
+        if (!(decode?.user_level >= 40) && shop?.user_pk != decode?.pk) {
+            return lowLevelResponse(req, res);
+        }
+
+        let result = await insertQuery(`UPDATE shop_table SET jump_time_table=? WHERE pk=? `, [
+            time_table,
+            pk,
+        ])
+        return response(req, res, 100, "success", [])
+
+
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const changeItemSequence = (req, res) => {
     try {
         const { pk, sort, table, change_pk, change_sort } = req.body;
@@ -2278,7 +2409,16 @@ const getAddressByLocation = async (req, res) => {
         const { name, region, land } = coord?.data?.results[0];
         const { area1, area2, area3, area4 } = region;
         const { addition0, addition1, addition2, addition3, addition4 } = land;
-        const address = `${area2.name} ${area3.name} ${area4.name} `;
+        let dong = area3.name;
+        let dong_str = ``;
+        for (var i = 0; i < dong.length; i++) {
+            if (i != 0 && dong[i] == '동') {
+                dong_str += `동`;
+                break;
+            }
+            dong_str += dong[i];
+        }
+        const address = `${area2.name} ${dong_str} ${area4.name} `;
         return response(req, res, 100, "success", address);
 
     } catch (e) {
@@ -2305,7 +2445,7 @@ function excelDateToJSDate(serial) {
 module.exports = {
     onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo, getShops, //auth
     getUsers, getItems, getHomeContent, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
-    onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addPopup, //insert 
+    onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addPopup, updateJumpTimeTable, //insert 
     updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updatePopup,//update
-    deleteItem, onResign, getMyItems, getMyItem, getHeaderContent, getMasterContent, getReviewByMasterPk, getShop, getAddressByLocation
+    deleteItem, onResign, getMyItems, getMyItem, getHeaderContent, getMasterContent, getReviewByMasterPk, getShop, getAddressByLocation, onJump
 }

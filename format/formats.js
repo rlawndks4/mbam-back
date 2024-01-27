@@ -1,5 +1,5 @@
 const { dbQueryList } = require("../query-util");
-const { commarNumber } = require("../util");
+const { commarNumber, returnMoment } = require("../util");
 
 const listFormatBySchema = async (schema, data_) => {
 
@@ -52,6 +52,8 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode_) => 
     let page_sql = page_sql_;
     let order = order_;
     let where_str = where_str_;
+    let return_monent = returnMoment();
+
     let community_list = [
         'notice',
         'faq',
@@ -69,6 +71,7 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode_) => 
         'shop_event',
     ]
     if(schema=='request'){
+        
         sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.id AS id FROM request_table`;
         page_sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
@@ -77,7 +80,13 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode_) => 
             where_str += ` AND user_pk=${decode?.pk??0} `;
         }
     }if(schema=='shop'){
-        sql = ` SELECT shop_table.*, user_table.nickname AS nickname, user_table.id AS id FROM shop_table`;
+        let columns = [
+            `shop_table.*`,
+            `user_table.nickname AS nickname`,
+            `user_table.id AS id`,
+            `(SELECT COUNT(*) FROM jump_table WHERE shop_pk=shop_table.pk AND date>='${return_monent.substring(0, 10)} 00:00:00' AND shop_pk=shop_table.pk AND date<='${return_monent.substring(0, 10)} 23:59:59') AS use_jump_count`
+        ]
+        sql = ` SELECT ${columns.join()} FROM shop_table`;
         sql += ` LEFT JOIN user_table ON shop_table.user_pk=user_table.pk `;
         page_sql += ` LEFT JOIN user_table ON shop_table.user_pk=user_table.pk `;
         order = 'pk'
