@@ -4,7 +4,7 @@ const { upload } = require('../config/multerConfig')
 const {
     onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo, getShops, //auth
     getUsers, getItems, getHomeContent, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
-    onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addPopup, onJump, updateJumpTimeTable, //insert 
+    onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addPopup, onJump, updateJumpTimeTable, updateShopManager, //insert 
     updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updatePopup,//update
     deleteItem, onResign, getMyItems, getMyItem, getHeaderContent, getMasterContent, getReviewByMasterPk, getShop, getAddressByLocation
 } = require('./api')
@@ -56,6 +56,7 @@ router.get('/items', getItems);
 router.post('/items', getItems);
 router.post('/shops', getShops);
 router.post('/jump', onJump);
+router.post('/shop-manager', updateShopManager);
 router.post('/jump-time-table', updateJumpTimeTable);
 router.post('/shop', getShop);
 router.post('/myitems', getMyItems);

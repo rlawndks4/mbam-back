@@ -2336,6 +2336,55 @@ const updateJumpTimeTable = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const updateShopManager = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        let { pk, manager_list = '[]' } = req.body;
+
+        manager_list = JSON.parse(manager_list);
+
+        let ago_manager_list = await dbQueryList(`SELECT * FROM shop_manager_table WHERE shop_pk=?`, [pk]);
+        ago_manager_list = ago_manager_list?.result;
+        for (var i = 0; i < manager_list.length; i++) {
+            if (manager_list[i]?.pk > 0) {
+                let find_manager = _.find(ago_manager_list, { pk: manager_list[i]?.pk });
+                if (
+                    find_manager?.img_src != manager_list[i]?.img_src ||
+                    find_manager?.name != manager_list[i]?.name ||
+                    find_manager?.comment != manager_list[i]?.comment ||
+                    find_manager?.work_time != manager_list[i]?.work_time
+                ) {
+                    let result = await insertQuery(`UPDATE shop_manager_table SET img_src=?, name=?, comment=?, work_time=?, status=0 WHERE pk=?`, [
+                        manager_list[i]?.img_src,
+                        manager_list[i]?.name,
+                        manager_list[i]?.comment,
+                        manager_list[i]?.work_time,
+                        manager_list[i]?.pk,
+                    ])
+                    console.log(1)
+                }
+            } else {
+                let result = await insertQuery(`INSERT INTO shop_manager_table (shop_pk, img_src, name, status, comment, work_time) VALUES (?, ?, ?, ?, ?, ?)`, [
+                    pk,
+                    manager_list[i]?.img_src ?? "",
+                    manager_list[i]?.name ?? "",
+                    0,
+                    manager_list[i]?.comment ?? "",
+                    manager_list[i]?.work_time ?? "",
+                ])
+                console.log(2)
+
+            }
+        }
+
+        return response(req, res, 100, "success", [])
+
+
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const changeItemSequence = (req, res) => {
     try {
         const { pk, sort, table, change_pk, change_sort } = req.body;
@@ -2480,7 +2529,7 @@ function excelDateToJSDate(serial) {
 module.exports = {
     onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo, getShops, //auth
     getUsers, getItems, getHomeContent, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
-    onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addPopup, updateJumpTimeTable, //insert 
+    onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addPopup, updateJumpTimeTable, updateShopManager, //insert 
     updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updatePopup,//update
     deleteItem, onResign, getMyItems, getMyItem, getHeaderContent, getMasterContent, getReviewByMasterPk, getShop, getAddressByLocation, onJump
 }
