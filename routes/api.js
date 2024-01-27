@@ -821,10 +821,22 @@ const getHomeContent = async (req, res) => {
                 result_obj['shop'][i].managers = managers.filter(el => el?.shop_pk == result_obj['shop'][i]?.pk);
             }
         }
-
-        for (var i = 0; i < result_obj['shop'].length; i++) {
-
+        //jump
+        let shop_list = [];
+        let shop_pk_list = result_obj['shop'].map(itm => { return itm?.pk });
+        for (var i = 0; i < result_obj['jump'].length; i++) {
+            let shop_pk = result_obj['jump'][i]?.shop_pk;
+            if (shop_pk_list.includes(shop_pk) && !_.find(shop_list, { pk: shop_pk })) {
+                shop_list.push(_.find(shop_list, { pk: shop_pk }));
+            }
         }
+        for (var i = 0; i < result_obj['shop'].length; i++) {
+            if (!_.find(shop_list, { pk: result_obj['shop'][i]?.pk })) {
+                shop_list.push(result_obj['shop'][i]);
+            }
+        }
+        result_obj['shop'] = shop_list;
+
         let real_time_shop_rand = await dbQueryList(`SELECT shop_table.pk, shop_table.name, real_time_rank, hot_place_rank, city_table.name AS city_name, sub_city_table.name AS sub_city_name FROM shop_table ${city_left_join_str} WHERE shop_table.status=1 ${result_obj['real_time_shop'].length > 0 ? `AND real_time_rank NOT IN (${result_obj['real_time_shop'].map(itm => { return itm?.pk }).join()})` : ''} ORDER BY RAND() LIMIT ${10 - result_obj['real_time_shop'].length}`);
         real_time_shop_rand = real_time_shop_rand?.result;
         let hop_place_shop_rand = await dbQueryList(`SELECT shop_table.pk, shop_table.name, real_time_rank, hot_place_rank, city_table.name AS city_name, sub_city_table.name AS sub_city_name FROM shop_table ${city_left_join_str} WHERE shop_table.status=1 ${result_obj['hop_place_shop'].length > 0 ? `AND hot_place_rank NOT IN (${result_obj['hop_place_shop'].map(itm => { return itm?.pk }).join()})` : ''} ORDER BY RAND() LIMIT ${20 - result_obj['hop_place_shop'].length}`);
@@ -1785,6 +1797,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
 }
 const getShops = async (req, res) => {
     try {
+        let return_monent = returnMoment();
         let { theme = 0, is_around, city = 0, sub_city = 0, keyword } = req.body;
         let column_list = [
             'shop_table.*',
@@ -1815,11 +1828,17 @@ const getShops = async (req, res) => {
             let keyword_list = ['shop_table.name', 'shop_table.sub_name', 'city_table.name'];
             sql += ` AND ${keyword_list.join(` LIKE '%${keyword}%' OR `)} LIKE '%${keyword}%' `
         }
+
+        let jump_list = await dbQueryList(`SELECT * FROM jump_table WHERE date>='${return_monent.substring(0, 10)} 00:00:00' AND date<='${return_monent.substring(0, 10)} 23:59:59' ORDER BY pk DESC `);
+        jump_list = jump_list?.result;
+
         let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
         country_list = country_list?.result;
         let country_obj = listToObjKey(country_list, 'pk');
         let option_list = await dbQueryList(`SELECT * FROM shop_option_table`);
         option_list = option_list?.result;
+
+
         let option_obj = listToObjKey(option_list, 'pk');
 
         sql += ` ORDER BY sort `;
@@ -1848,6 +1867,22 @@ const getShops = async (req, res) => {
                 shops[i].managers = managers.filter(el => el?.shop_pk == shops[i]?.pk);
             }
         }
+
+        let shop_list = [];
+        let shop_pk_list = shops.map(itm => { return itm?.pk });
+        for (var i = 0; i < jump_list.length; i++) {
+            let shop_pk = jump_list[i]?.shop_pk;
+            if (shop_pk_list.includes(shop_pk) && !_.find(shop_list, { pk: shop_pk })) {
+                shop_list.push(_.find(shop_list, { pk: shop_pk }));
+            }
+        }
+        for (var i = 0; i < shops.length; i++) {
+            if (!_.find(shop_list, { pk: shops[i]?.pk })) {
+                shop_list.push(shops[i]);
+            }
+        }
+        shops = shop_list;
+
         return response(req, res, 100, "success", shops);
     } catch (err) {
         console.log(err)
