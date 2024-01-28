@@ -801,6 +801,7 @@ const getHomeContent = async (req, res) => {
         let option_obj = listToObjKey(option_list, 'pk');
 
         for (var i = 0; i < result_obj['shop'].length; i++) {
+            delete result_obj['shop'][i].note;
             result_obj['shop'][i]['country_list'] = JSON.parse(result_obj['shop'][i]['country_list']);
             for (var j = 0; j < result_obj['shop'][i]['country_list'].length; j++) {
                 if (country_obj[result_obj['shop'][i]['country_list'][j]]) {
@@ -827,7 +828,7 @@ const getHomeContent = async (req, res) => {
         for (var i = 0; i < result_obj['jump'].length; i++) {
             let shop_pk = result_obj['jump'][i]?.shop_pk;
             if (shop_pk_list.includes(shop_pk) && !_.find(shop_list, { pk: shop_pk })) {
-                shop_list.push(_.find(shop_list, { pk: shop_pk }));
+                shop_list.push(_.find(result_obj['shop'], { pk: shop_pk }));
             }
         }
         for (var i = 0; i < result_obj['shop'].length; i++) {
@@ -835,7 +836,9 @@ const getHomeContent = async (req, res) => {
                 shop_list.push(result_obj['shop'][i]);
             }
         }
-        result_obj['shop'] = shop_list;
+        let normal_shop_list = shop_list.filter(el => el?.is_premium == 0).splice(0, 10);
+        let premium_shop_list = shop_list.filter(el => el?.is_premium == 1).splice(0, 10);
+        result_obj['shop'] = [...normal_shop_list, ...premium_shop_list];
 
         let real_time_shop_rand = await dbQueryList(`SELECT shop_table.pk, shop_table.name, real_time_rank, hot_place_rank, city_table.name AS city_name, sub_city_table.name AS sub_city_name FROM shop_table ${city_left_join_str} WHERE shop_table.status=1 ${result_obj['real_time_shop'].length > 0 ? `AND real_time_rank NOT IN (${result_obj['real_time_shop'].map(itm => { return itm?.pk }).join()})` : ''} ORDER BY RAND() LIMIT ${10 - result_obj['real_time_shop'].length}`);
         real_time_shop_rand = real_time_shop_rand?.result;
