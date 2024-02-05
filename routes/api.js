@@ -2132,7 +2132,7 @@ function addDays(date, days) {
 }
 
 const getSetting = async (req, res) => {
-    const { shop_id = -1, post_id = -1, post_table = "" } = req.query;
+    const { shop_id = -1, post_id = -1, city_id = -1, post_table = "" } = req.query;
     try {
         let result = await dbQueryList("SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1");
         result = result?.result[0];
@@ -2150,6 +2150,12 @@ const getSetting = async (req, res) => {
             result.meta_title = post_data?.title
             result.meta_description = post_data?.title
             result.meta_keywords = post_data?.title
+        }
+        if (city_id > 0) {
+            let city_data = await dbQueryList("SELECT * FROM city_table WHERE pk=?", [city_id]);
+            city_data = city_data?.result[0];
+            result.meta_title = city_data?.meta_title
+            result.meta_description = city_data?.meta_description
         }
         return response(req, res, 100, "success", result)
 
