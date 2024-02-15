@@ -762,7 +762,7 @@ const getHomeContent = async (req, res) => {
         let city_left_join_str = ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk  LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk  `
         shop_sql += city_left_join_str;
         shop_sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
-        shop_sql += ` WHERE shop_table.status=1 `;
+        shop_sql += ` WHERE shop_table.status=1 AND end_date>='${returnMoment().substring(0, 10)}' `;
         shop_sql += ` ORDER BY sort DESC `;
         let sql_list = [
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
@@ -1816,7 +1816,7 @@ const getShops = async (req, res) => {
         sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
         sql += ` LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk `;
         sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
-        sql += ` WHERE shop_table.status=1 `;
+        sql += ` WHERE shop_table.status=1 AND end_date>='${returnMoment().substring(0, 10)}' `;
 
         if (theme && theme != 0) {
             sql += ` AND theme_pk=${theme} `;
@@ -1875,15 +1875,17 @@ const getShops = async (req, res) => {
         let shop_pk_list = shops.map(itm => { return itm?.pk });
         for (var i = 0; i < jump_list.length; i++) {
             let shop_pk = jump_list[i]?.shop_pk;
-            if (shop_pk_list.includes(shop_pk) && !_.find(shop_list, { pk: shop_pk })) {
-                shop_list.push(_.find(shop_list, { pk: shop_pk }));
+            if (shop_pk_list.includes(shop_pk) && !_.find(shop_list, { pk: parseInt(shop_pk) })) {
+                shop_list.push(_.find(shops, { pk: parseInt(shop_pk) }));
             }
+
         }
         for (var i = 0; i < shops.length; i++) {
             if (!_.find(shop_list, { pk: shops[i]?.pk })) {
                 shop_list.push(shops[i]);
             }
         }
+
         shops = shop_list;
 
         return response(req, res, 100, "success", shops);
@@ -1997,7 +1999,7 @@ const getItems = async (req, res) => {
             whereStr += ` AND ${table}_table.transaction_status ${price_is_minus == 1 ? ' = -1 ' : ' = 0 '} `;
         }
         if (start_date && end_date) {
-            whereStr += ` AND (${table}_table.trade_date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
+            whereStr += ` AND (${table}_table.date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
         }
         if (comment_type) {
             if (comment_type == 'shop') {
@@ -2354,7 +2356,16 @@ const updateShopManager = async (req, res) => {
 
         let ago_manager_list = await dbQueryList(`SELECT * FROM shop_manager_table WHERE shop_pk=?`, [pk]);
         ago_manager_list = ago_manager_list?.result;
+        await db.beginTransaction();
         for (var i = 0; i < manager_list.length; i++) {
+            if (manager_list[i]?.is_delete == 1) {
+                if (manager_list[i]?.pk > 0) {
+                    let result = await insertQuery(`DELETE FROM shop_manager_table WHERE pk=?`, [
+                        manager_list[i]?.pk,
+                    ])
+                }
+                continue;
+            }
             if (manager_list[i]?.pk > 0) {
                 let find_manager = _.find(ago_manager_list, { pk: manager_list[i]?.pk });
                 if (
@@ -2370,7 +2381,6 @@ const updateShopManager = async (req, res) => {
                         manager_list[i]?.work_time,
                         manager_list[i]?.pk,
                     ])
-                    console.log(1)
                 }
             } else {
                 let result = await insertQuery(`INSERT INTO shop_manager_table (shop_pk, img_src, name, status, comment, work_time) VALUES (?, ?, ?, ?, ?, ?)`, [
@@ -2381,16 +2391,15 @@ const updateShopManager = async (req, res) => {
                     manager_list[i]?.comment ?? "",
                     manager_list[i]?.work_time ?? "",
                 ])
-                console.log(2)
-
             }
         }
-
+        await db.commit();
         return response(req, res, 100, "success", [])
 
 
     } catch (err) {
         console.log(err)
+        await db.rollback();
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
