@@ -413,16 +413,22 @@ const listToObjKey = (list, key) => {
     }
     return obj;
 }
+
 const communityCategoryList = [
     { table: 'freeboard', name: '자유게시판', is_write: true },
-    { table: 'question', name: '질문게시판', is_write: true },
-    { table: 'humor', name: '유머게시판', is_write: true },
-    { table: 'news', name: '마사지소식', is_write: true },
-    { table: 'party', name: '파티모집', is_write: true },
-    { table: 'shop_review', name: '업체후기', },
+    { table: 'anonymous', name: '익명게시판', is_write: true },
+    { table: 'greeting', name: '가입인사', is_write: true },
+    { table: 'education', name: '창업교육', is_write: true },
+
+    { table: 'shop_review', name: '방문후기', },
     { table: 'shop_event', name: '업체이벤트', },
+    { table: 'shop_offer', name: '구인구직', },
+    { table: 'shop_trade', name: '샵매매', },
+
     { table: 'notice', name: '공지사항', },
     { table: 'faq', name: '자주묻는질문', },
+    { table: 'event', name: '이벤트', },
+    { table: 'blog', name: '공식블로그', },
     { table: 'request', name: '문의하기', },
 ]
 module.exports = {
