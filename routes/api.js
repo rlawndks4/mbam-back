@@ -1432,7 +1432,7 @@ const updatePlusUtil = async (schema, body) => {
             }
         }
         data += `</urlset>`;
-        fs.writeFileSync('../user_front/public/sitemap.xml', data, 'utf8', function (error) {
+        fs.writeFileSync('../front/public/sitemap.xml', data, 'utf8', function (error) {
             console.log('write end')
         });
     }
