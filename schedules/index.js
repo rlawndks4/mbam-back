@@ -10,6 +10,7 @@ const scheduleIndex = () => {
             if (parseInt(process.env.INSTANCE_ID) != parseInt(process.env.instances) - 1) {
                 return;
             }
+            console.log('jump start')
             let columns = [
                 `pk`,
                 `user_pk`,
