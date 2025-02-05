@@ -1,11 +1,15 @@
 const schedule = require('node-schedule');
 const { dbQueryList, insertQuery } = require('../query-util');
 const { returnMoment } = require('../util');
+require('dotenv');
+
 const scheduleIndex = () => {
     schedule.scheduleJob('0 0/1 * * * *', async function () {
         let return_monent = returnMoment();
         try {
-
+            if (parseInt(process.env.INSTANCE_ID) != parseInt(process.env.instances) - 1) {
+                return;
+            }
             let columns = [
                 `pk`,
                 `user_pk`,
