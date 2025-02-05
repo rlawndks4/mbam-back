@@ -3,7 +3,7 @@ require('dotenv/config')
 module.exports = {
     apps: [{
         name: 'back',
-        script: './index.js',
+        script: './web.js',
         instance_var: 'INSTANCE_ID', // You can set a convenient name.
         instances: 5, // 클러스터 모드 사용 시 생성할 인스턴스 수
         exec_mode: 'cluster', // fork, cluster 모드 중 선택
